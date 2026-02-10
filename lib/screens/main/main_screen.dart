@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../monitor/sos_monitor_screen.dart';
 import '../admin/manage_admins_screen.dart';
+import '../admin/users_list_screen.dart';
 
 /// Main screen with role-based navigation
 class MainScreen extends StatefulWidget {
@@ -51,6 +52,25 @@ class _MainScreenState extends State<MainScreen> {
     await widget.authService.signOut();
   }
 
+  Widget _getSelectedScreen() {
+    switch (_selectedIndex) {
+      case 0:
+        return SOSMonitorScreen(userProfile: _userProfile!);
+      case 1:
+        return UsersListScreen(
+          userProfile: _userProfile!,
+          apiService: _apiService,
+        );
+      case 2:
+        return ManageAdminsScreen(
+          userProfile: _userProfile!,
+          apiService: _apiService,
+        );
+      default:
+        return SOSMonitorScreen(userProfile: _userProfile!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoadingProfile) {
@@ -89,12 +109,7 @@ class _MainScreenState extends State<MainScreen> {
 
             // Content
             Expanded(
-              child: _selectedIndex == 0
-                  ? SOSMonitorScreen(userProfile: _userProfile!)
-                  : ManageAdminsScreen(
-                      userProfile: _userProfile!,
-                      apiService: _apiService,
-                    ),
+              child: _getSelectedScreen(),
             ),
           ],
         ),
@@ -117,12 +132,15 @@ class _MainScreenState extends State<MainScreen> {
           _buildLogo(),
           Row(
             children: [
+              _buildNavButton('MONITOR', 0),
+              const SizedBox(width: 16),
+              _buildNavButton('USERS', 1),
+              const SizedBox(width: 16),
               if (isSuperAdmin) ...[
-                _buildNavButton('MONITOR', 0),
+                _buildNavButton('MANAGE ADMINS', 2),
                 const SizedBox(width: 16),
-                _buildNavButton('MANAGE ADMINS', 1),
-                const SizedBox(width: 32),
               ],
+              const SizedBox(width: 16),
               _buildUserInfo(isSuperAdmin),
               const SizedBox(width: 16),
               _buildLogoutButton(),

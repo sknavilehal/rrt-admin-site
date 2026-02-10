@@ -7,8 +7,15 @@ import '../screens/monitor/sos_monitor_screen.dart';
 /// Widget displaying the SOS alerts table
 class SOSAlertsTable extends StatelessWidget {
   final UserProfile userProfile;
+  final String? selectedState;
+  final String? selectedDistrict;
 
-  const SOSAlertsTable({super.key, required this.userProfile});
+  const SOSAlertsTable({
+    super.key,
+    required this.userProfile,
+    this.selectedState,
+    this.selectedDistrict,
+  });
 
   String _formatTimeElapsed(Timestamp? timestamp) {
     if (timestamp == null) return 'N/A';
@@ -65,7 +72,7 @@ class SOSAlertsTable extends StatelessWidget {
         final allAlerts = snapshot.data?.docs ?? [];
         
         // Filter alerts to only show those less than 1 hour old
-        final alerts = allAlerts.where((doc) {
+        var alerts = allAlerts.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final timestamp = data['timestamp'] as Timestamp?;
           
@@ -76,6 +83,24 @@ class SOSAlertsTable extends StatelessWidget {
           
           return difference.inHours < 1;
         }).toList();
+
+        // Apply client-side filtering by state
+        if (selectedState != null && selectedState!.isNotEmpty) {
+          alerts = alerts.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final state = data['state'] as String?;
+            return state == selectedState;
+          }).toList();
+        }
+
+        // Apply client-side filtering by district
+        if (selectedDistrict != null && selectedDistrict!.isNotEmpty) {
+          alerts = alerts.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final district = data['district'] as String?;
+            return district == selectedDistrict;
+          }).toList();
+        }
 
         if (alerts.isEmpty) {
           return _buildEmptyState();
