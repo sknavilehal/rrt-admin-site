@@ -158,12 +158,13 @@ class _MainScreenState extends State<MainScreen> {
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(0),
+            border: Border.all(color: Colors.black, width: 2),
           ),
           child: const Icon(
-            Icons.emergency,
-            color: Colors.white,
+            Icons.pets,
+            color: Colors.black,
             size: 28,
           ),
         ),
