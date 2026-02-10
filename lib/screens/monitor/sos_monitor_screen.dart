@@ -248,8 +248,7 @@ class _SOSMonitorScreenState extends State<SOSMonitorScreen> {
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
           Text(
             label,
@@ -260,43 +259,45 @@ class _SOSMonitorScreenState extends State<SOSMonitorScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: value,
-              hint: Text(
-                'All',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              items: [
-                DropdownMenuItem<String>(
-                  value: null,
-                  child: Text(
-                    'All',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: value,
+                hint: Text(
+                  'All',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
                   ),
                 ),
-                ...items.map((item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
+                items: [
+                  DropdownMenuItem<String>(
+                    value: null,
                     child: Text(
-                      item.toUpperCase().replaceAll('_', ' / '),
-                      style: const TextStyle(
+                      'All',
+                      style: TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade700,
                       ),
                     ),
-                  );
-                }),
-              ],
-              onChanged: onChanged,
+                  ),
+                  ...items.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(
+                        item.toUpperCase().replaceAll('_', ' / '),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+                onChanged: onChanged,
+              ),
             ),
           ),
         ],
