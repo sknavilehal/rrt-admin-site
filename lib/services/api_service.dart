@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../config/constants.dart';
 import '../models/user_profile.dart';
 import '../models/admin.dart';
+import '../models/app_user.dart';
 import 'auth_service.dart';
 
 /// Service for handling API calls to the backend
@@ -88,6 +89,69 @@ class ApiService {
     if (response.statusCode != 200) {
       final error = json.decode(response.body);
       throw Exception(error['message'] ?? 'Failed to delete admin');
+    }
+  }
+
+  /// Get paginated list of users with optional search
+  Future<UsersListResponse> getUsers({
+    int page = 1,
+    int pageSize = 50,
+    String? search,
+  }) async {
+    final headers = await _getHeaders();
+    
+    // Build query parameters
+    final queryParams = {
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+      if (search != null && search.isNotEmpty) 'search': search,
+    };
+    
+    final uri = Uri.parse('${AppConstants.apiBaseUrl}/admin/users')
+        .replace(queryParameters: queryParams);
+    
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return UsersListResponse.fromJson(data);
+    } else {
+      throw Exception('Failed to load users: ${response.statusCode}');
+    }
+  }
+
+  /// Block a user
+  Future<void> blockUser(String senderId, String reason) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('${AppConstants.apiBaseUrl}/admin/block-user'),
+      headers: headers,
+      body: json.encode({
+        'sender_id': senderId,
+        'reason': reason,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['message'] ?? 'Failed to block user');
+    }
+  }
+
+  /// Unblock a user
+  Future<void> unblockUser(String senderId) async {
+    final headers = await _getHeaders();
+    final response = await http.post(
+      Uri.parse('${AppConstants.apiBaseUrl}/admin/unblock-user'),
+      headers: headers,
+      body: json.encode({
+        'sender_id': senderId,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      final error = json.decode(response.body);
+      throw Exception(error['message'] ?? 'Failed to unblock user');
     }
   }
 }
