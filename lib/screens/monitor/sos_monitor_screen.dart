@@ -33,7 +33,7 @@ class SOSMonitorScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ACTIVE ALERTS ONLY',
+          'ACTIVE ALERTS (LAST 1 HOUR)',
           style: TextStyle(
             fontSize: 11,
             letterSpacing: 1.5,
@@ -69,7 +69,24 @@ class SOSMonitorScreen extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: buildAlertsQuery(userProfile).snapshots(),
       builder: (context, snapshot) {
-        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        int count = 0;
+        
+        if (snapshot.hasData) {
+          // Filter to only count alerts less than 1 hour old
+          final filteredDocs = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final timestamp = data['timestamp'] as Timestamp?;
+            
+            if (timestamp == null) return false;
+            
+            final alertTime = timestamp.toDate();
+            final difference = DateTime.now().difference(alertTime);
+            
+            return difference.inHours < 1;
+          });
+          
+          count = filteredDocs.length;
+        }
 
         return Container(
           width: double.infinity,

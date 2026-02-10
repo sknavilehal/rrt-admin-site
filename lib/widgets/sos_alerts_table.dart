@@ -62,7 +62,20 @@ class SOSAlertsTable extends StatelessWidget {
           );
         }
 
-        final alerts = snapshot.data?.docs ?? [];
+        final allAlerts = snapshot.data?.docs ?? [];
+        
+        // Filter alerts to only show those less than 1 hour old
+        final alerts = allAlerts.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final timestamp = data['timestamp'] as Timestamp?;
+          
+          if (timestamp == null) return false;
+          
+          final alertTime = timestamp.toDate();
+          final difference = DateTime.now().difference(alertTime);
+          
+          return difference.inHours < 1;
+        }).toList();
 
         if (alerts.isEmpty) {
           return _buildEmptyState();
