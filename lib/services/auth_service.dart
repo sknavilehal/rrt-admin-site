@@ -30,4 +30,9 @@ class AuthService {
   Future<String?> getIdToken() async {
     return await _auth.currentUser?.getIdToken();
   }
+
+  /// Send password reset email
+  Future<void> sendPasswordResetEmail({required String email}) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
 }

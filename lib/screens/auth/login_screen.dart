@@ -56,6 +56,134 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final emailController = TextEditingController(text: _emailController.text);
+    String? errorMessage;
+    String? successMessage;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Reset Password'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Enter your email address and we\'ll send you a link to reset your password.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                ),
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Text(
+                      errorMessage!,
+                      style: TextStyle(color: Colors.red.shade700),
+                    ),
+                  ),
+                ],
+                if (successMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Text(
+                      successMessage!,
+                      style: TextStyle(color: Colors.green.shade700),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                successMessage != null ? 'CLOSE' : 'CANCEL',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            ),
+            if (successMessage == null)
+              ElevatedButton(
+                onPressed: () async {
+                  final email = emailController.text.trim();
+
+                  if (email.isEmpty) {
+                    setState(() {
+                      errorMessage = 'Please enter your email';
+                      successMessage = null;
+                    });
+                    return;
+                  }
+
+                  if (!email.contains('@')) {
+                    setState(() {
+                      errorMessage = 'Please enter a valid email';
+                      successMessage = null;
+                    });
+                    return;
+                  }
+
+                  try {
+                    await widget.authService.sendPasswordResetEmail(email: email);
+                    setState(() {
+                      errorMessage = null;
+                      successMessage = 'Password reset email sent! Please check your spam/junk folder if you don\'t see it in your inbox.';
+                    });
+                  } on FirebaseAuthException catch (e) {
+                    setState(() {
+                      successMessage = null;
+                      if (e.code == 'user-not-found') {
+                        errorMessage = 'No account found with this email';
+                      } else if (e.code == 'invalid-email') {
+                        errorMessage = 'Invalid email address';
+                      } else {
+                        errorMessage = e.message ?? 'Failed to send reset email';
+                      }
+                    });
+                  } catch (e) {
+                    setState(() {
+                      successMessage = null;
+                      errorMessage = 'An error occurred. Please try again.';
+                    });
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('SEND RESET LINK'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,7 +280,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
+
+                  // Forgot Password link
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _showForgotPasswordDialog,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      ),
+                      child: Text(
+                        'Forgot/Reset Password?',
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
 
                   // Error message
                   if (_errorMessage != null)
