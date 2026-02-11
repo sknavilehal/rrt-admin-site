@@ -291,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                       ),
                       child: Text(
-                        'Forgot/Reset Password?',
+                        'Forgot Password?',
                         style: TextStyle(
                           color: Colors.grey.shade700,
                           fontSize: 14,
