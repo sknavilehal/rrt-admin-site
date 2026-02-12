@@ -56,9 +56,9 @@ class ApiService {
   }
 
   /// Create a new admin (Super Admin only)
+  /// Password reset email is automatically sent by Firebase Auth
   Future<void> createAdmin({
     required String email,
-    required String password,
     required List<String> assignedDistricts,
   }) async {
     final headers = await _getHeaders();
@@ -67,7 +67,6 @@ class ApiService {
       headers: headers,
       body: json.encode({
         'email': email,
-        'password': password,
         'assignedDistricts': assignedDistricts,
       }),
     );

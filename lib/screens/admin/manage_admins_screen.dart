@@ -128,7 +128,6 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
 
   Future<void> _showAddAdminDialog() async {
     final emailController = TextEditingController();
-    final passwordController = TextEditingController();
     final districtsController = TextEditingController();
     String? districtsError;
     List<String> suggestions = [];
@@ -152,13 +151,12 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                       border: OutlineInputBorder(),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'A password reset link will be sent to this email',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -257,11 +255,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (emailController.text.isEmpty ||
-                    passwordController.text.isEmpty) {
+                if (emailController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Please fill all required fields')),
+                        content: Text('Please enter an email address')),
                   );
                   return;
                 }
@@ -292,14 +289,13 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 try {
                   await widget.apiService.createAdmin(
                     email: emailController.text.trim(),
-                    password: passwordController.text,
                     assignedDistricts: districts,
                   );
 
                   if (mounted) {
                     messenger.showSnackBar(
                       const SnackBar(
-                          content: Text('Admin created successfully')),
+                          content: Text('Admin created! Password reset email sent.')),
                     );
                     _loadAdmins();
                   }

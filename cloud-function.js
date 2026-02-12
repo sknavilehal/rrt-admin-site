@@ -197,6 +197,103 @@ async function getSOSAlerts(activeOnly = false) {
   return alerts;
 }
 
+/**
+ * Create admin user in Firebase Auth and store metadata in Firestore
+ */
+async function createAdminUser(email, assignedDistricts, createdBy) {
+  // Create user in Firebase Auth (without password)
+  const userRecord = await admin.auth().createUser({
+    email: email,
+    emailVerified: false
+  });
+  
+  // Set custom claims for role
+  await admin.auth().setCustomUserClaims(userRecord.uid, {
+    role: 'admin',
+    assignedDistricts: assignedDistricts
+  });
+  
+  // Store admin metadata in Firestore
+  await admin.firestore()
+    .collection('admins')
+    .doc(email)
+    .set({
+      email: email,
+      uid: userRecord.uid,
+      role: 'admin',
+      assignedDistricts: assignedDistricts,
+      active: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdBy: createdBy
+    });
+  
+  return userRecord;
+}
+
+/**
+ * Get admin from Firestore
+ */
+async function getAdmin(email) {
+  const doc = await admin.firestore()
+    .collection('admins')
+    .doc(email)
+    .get();
+  
+  if (!doc.exists) {
+    return null;
+  }
+  
+  return { email: doc.id, ...doc.data() };
+}
+
+/**
+ * List all admins from Firestore
+ */
+async function listAdmins() {
+  const snapshot = await admin.firestore()
+    .collection('admins')
+    .orderBy('createdAt', 'desc')
+    .get();
+  
+  const admins = [];
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    admins.push({
+      email: doc.id,
+      role: data.role,
+      assignedDistricts: data.assignedDistricts || [],
+      active: data.active ?? true,
+      createdAt: data.createdAt?.toDate().toISOString(),
+      createdBy: data.createdBy
+    });
+  });
+  
+  return admins;
+}
+
+/**
+ * Delete admin from Firebase Auth and Firestore
+ */
+async function deleteAdminUser(email) {
+  // Get admin to find UID
+  const adminDoc = await getAdmin(email);
+  
+  if (!adminDoc) {
+    throw new Error('Admin not found');
+  }
+  
+  // Delete from Firebase Auth
+  if (adminDoc.uid) {
+    await admin.auth().deleteUser(adminDoc.uid);
+  }
+  
+  // Delete from Firestore
+  await admin.firestore()
+    .collection('admins')
+    .doc(email)
+    .delete();
+}
+
 // ============================================================================
 // API ENDPOINTS
 // ============================================================================
@@ -351,6 +448,159 @@ app.get('/admin/sos-alerts', async (req, res) => {
     console.error('❌ Get SOS alerts error:', error);
     res.status(500).json({ 
       error: 'Failed to retrieve SOS alerts',
+      message: error.message
+    });
+  }
+});
+
+// Admin endpoint: Create a new admin
+app.post('/admin/admins', async (req, res) => {
+  console.log('👤 Create admin request received:', { email: req.body.email });
+  
+  try {
+    const { email, assignedDistricts } = req.body;
+    
+    // Validate required fields
+    if (!email || !assignedDistricts) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['email', 'assignedDistricts']
+      });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        error: 'Invalid email format'
+      });
+    }
+    
+    // Validate assignedDistricts is an array
+    if (!Array.isArray(assignedDistricts)) {
+      return res.status(400).json({ 
+        error: 'assignedDistricts must be an array'
+      });
+    }
+    
+    // Check if admin already exists
+    const existingAdmin = await getAdmin(email);
+    if (existingAdmin) {
+      return res.status(409).json({ 
+        error: 'Admin already exists',
+        message: `Admin with email ${email} already exists`
+      });
+    }
+    
+    // Get the creator's email from the auth token
+    // TODO: Extract from Bearer token when authentication middleware is added
+    const createdBy = 'super-admin'; // Placeholder
+    
+    // Create admin user in Firebase Auth and Firestore
+    const userRecord = await createAdminUser(email, assignedDistricts, createdBy);
+    
+    // Generate password reset link (expires in 1 hour by default)
+    const resetLink = await admin.auth().generatePasswordResetLink(email);
+    
+    console.log(`✅ Admin created successfully: ${email}`);
+    console.log(`🔗 Password reset link generated (Firebase will send email)`);
+    
+    // Note: Firebase will automatically send the password reset email
+    // using the template configured in Firebase Console
+    
+    res.json({ 
+      success: true, 
+      message: 'Admin created successfully. Password reset email sent.',
+      admin: {
+        email: email,
+        uid: userRecord.uid,
+        assignedDistricts: assignedDistricts
+      },
+      // Optionally return the link for testing/development
+      // Remove this in production for security
+      passwordResetLink: resetLink,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Create admin error:', error);
+    
+    // Handle specific Firebase Auth errors
+    if (error.code === 'auth/email-already-exists') {
+      return res.status(409).json({ 
+        error: 'Email already exists',
+        message: 'An account with this email already exists'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to create admin',
+      message: error.message
+    });
+  }
+});
+
+// Admin endpoint: Get all admins
+app.get('/admin/admins', async (req, res) => {
+  console.log('📋 List admins request received');
+  
+  try {
+    const admins = await listAdmins();
+    
+    console.log(`✅ Found ${admins.length} admins`);
+    
+    res.json({ 
+      success: true,
+      count: admins.length,
+      admins: admins,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ List admins error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve admins',
+      message: error.message
+    });
+  }
+});
+
+// Admin endpoint: Delete an admin
+app.delete('/admin/admins/:email', async (req, res) => {
+  console.log('🗑️  Delete admin request received:', req.params.email);
+  
+  try {
+    const { email } = req.params;
+    
+    // Validate email
+    if (!email) {
+      return res.status(400).json({ 
+        error: 'Missing email parameter'
+      });
+    }
+    
+    // Check if admin exists
+    const existingAdmin = await getAdmin(email);
+    if (!existingAdmin) {
+      return res.status(404).json({ 
+        error: 'Admin not found',
+        message: `Admin with email ${email} does not exist`
+      });
+    }
+    
+    // Delete admin
+    await deleteAdminUser(email);
+    
+    console.log(`✅ Admin deleted successfully: ${email}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Admin deleted successfully',
+      email: email,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Delete admin error:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete admin',
       message: error.message
     });
   }
@@ -674,7 +924,10 @@ app.use((req, res) => {  // No path specified here—it's implied as catch-all
       'POST /admin/block-user',
       'POST /admin/unblock-user',
       'GET /admin/blocked-users',
-      'GET /admin/sos-alerts?active=true'
+      'GET /admin/sos-alerts?active=true',
+      'POST /admin/admins',
+      'GET /admin/admins',
+      'DELETE /admin/admins/:email'
     ]
   });
 });
