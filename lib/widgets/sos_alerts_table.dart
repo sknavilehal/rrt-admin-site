@@ -213,19 +213,20 @@ class SOSAlertsTable extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              'MAPS',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 1.5,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
+          if (userProfile.isSuperAdmin)
+            Expanded(
+              flex: 2,
+              child: Text(
+                'MAPS',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -297,44 +298,45 @@ class SOSAlertsTable extends StatelessWidget {
                   ),
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton(
-                    onPressed: () => _openInMaps(
-                      location?['latitude'] as double?,
-                      location?['longitude'] as double?,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
+              if (userProfile.isSuperAdmin)
+                Expanded(
+                  flex: 2,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton(
+                      onPressed: () => _openInMaps(
+                        location?['latitude'] as double?,
+                        location?['longitude'] as double?,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'OPEN IN MAPS',
-                          style: TextStyle(
-                            fontSize: 11,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward, size: 14),
-                      ],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'OPEN IN MAPS',
+                            style: TextStyle(
+                              fontSize: 11,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward, size: 14),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         );
