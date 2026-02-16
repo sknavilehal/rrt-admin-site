@@ -3,6 +3,7 @@ import '../../models/user_profile.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../monitor/sos_monitor_screen.dart';
+import '../monitor/sos_map_screen.dart';
 import '../admin/manage_admins_screen.dart';
 import '../admin/users_list_screen.dart';
 
@@ -57,11 +58,21 @@ class _MainScreenState extends State<MainScreen> {
       case 0:
         return SOSMonitorScreen(userProfile: _userProfile!);
       case 1:
+        // Map view only for super admins, otherwise show users list
+        if (_userProfile!.isSuperAdmin) {
+          return SOSMapScreen(userProfile: _userProfile!);
+        } else {
+          return UsersListScreen(
+            userProfile: _userProfile!,
+            apiService: _apiService,
+          );
+        }
+      case 2:
         return UsersListScreen(
           userProfile: _userProfile!,
           apiService: _apiService,
         );
-      case 2:
+      case 3:
         return ManageAdminsScreen(
           userProfile: _userProfile!,
           apiService: _apiService,
@@ -134,10 +145,14 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               _buildNavButton('MONITOR', 0),
               const SizedBox(width: 16),
-              _buildNavButton('USERS', 1),
+              if (isSuperAdmin) ...[
+                _buildNavButton('MAP', 1),
+                const SizedBox(width: 16),
+              ],
+              _buildNavButton('USERS', isSuperAdmin ? 2 : 1),
               const SizedBox(width: 16),
               if (isSuperAdmin) ...[
-                _buildNavButton('MANAGE ADMINS', 2),
+                _buildNavButton('MANAGE ADMINS', 3),
                 const SizedBox(width: 16),
               ],
               const SizedBox(width: 16),
