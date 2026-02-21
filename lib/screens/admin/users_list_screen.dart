@@ -259,7 +259,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
             ),
             if (!_isLoading)
               Text(
-                '${_totalUsers} total users',
+                '$_totalUsers total users',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey.shade600,

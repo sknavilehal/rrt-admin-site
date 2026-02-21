@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/user_profile.dart';
 import '../../models/admin.dart';
@@ -126,17 +127,23 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
     }
   }
 
+  static String _generateTempPassword({int length = 12}) {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final r = Random.secure();
+    return List.generate(length, (_) => chars[r.nextInt(chars.length)]).join();
+  }
+
   Future<void> _showAddAdminDialog() async {
     final emailController = TextEditingController();
-    final passwordController = TextEditingController();
     final districtsController = TextEditingController();
     String? districtsError;
     List<String> suggestions = [];
 
     await showDialog<bool>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+      builder: (_) => StatefulBuilder(
+        builder: (_, setDlgState) => AlertDialog(
           title: const Text('Add New Admin'),
           content: SizedBox(
             width: 500,
@@ -149,15 +156,6 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     controller: emailController,
                     decoration: const InputDecoration(
                       labelText: 'Email',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -176,7 +174,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                           errorText: districtsError,
                         ),
                         onChanged: (value) {
-                          setState(() {
+                          setDlgState(() {
                             districtsError = null;
                             
                             // Get the current word being typed (after the last comma)
@@ -206,16 +204,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                           child: ListView.builder(
                             shrinkWrap: true,
                             itemCount: suggestions.length,
-                            itemBuilder: (context, index) {
+                            itemBuilder: (_, index) {
                               final suggestion = suggestions[index];
                               return InkWell(
                                 onTap: () {
                                   // Replace the last partial district with the selected one
                                   final parts = districtsController.text.split(',');
                                   parts[parts.length - 1] = ' $suggestion';
-                                  districtsController.text = parts.join(',') + ', ';
+                                  districtsController.text = '${parts.join(',')}, ';
                                   
-                                  setState(() {
+                                  setDlgState(() {
                                     suggestions = [];
                                     districtsError = null;
                                   });
@@ -257,11 +255,10 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (emailController.text.isEmpty ||
-                    passwordController.text.isEmpty) {
+                if (emailController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Please fill all required fields')),
+                        content: Text('Please enter email')),
                   );
                   return;
                 }
@@ -279,7 +276,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     .toList();
                 
                 if (invalidDistricts.isNotEmpty) {
-                  setState(() {
+                  setDlgState(() {
                     districtsError = 'Invalid districts: ${invalidDistricts.join(", ")}';
                   });
                   return;
@@ -289,20 +286,20 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 final messenger = ScaffoldMessenger.of(context);
                 navigator.pop(true);
 
+                final tempPassword = _generateTempPassword();
                 try {
                   await widget.apiService.createAdmin(
                     email: emailController.text.trim(),
-                    password: passwordController.text,
+                    password: tempPassword,
                     assignedDistricts: districts,
                   );
 
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      const SnackBar(
-                          content: Text('Admin created successfully')),
-                    );
-                    _loadAdmins();
-                  }
+                  if (!mounted) return;
+                  messenger.showSnackBar(
+                    const SnackBar(
+                        content: Text('Admin created successfully. An email with the temporary password has been sent.')),
+                  );
+                  _loadAdmins();
                 } catch (e) {
                   if (mounted) {
                     messenger.showSnackBar(
