@@ -146,7 +146,7 @@ class _MainScreenState extends State<MainScreen> {
               _buildNavButton('MONITOR', 0),
               const SizedBox(width: 16),
               if (isSuperAdmin) ...[
-                _buildNavButton('MAP', 1),
+                _buildNavButton('H-MAP', 1),
                 const SizedBox(width: 16),
               ],
               _buildNavButton('USERS', isSuperAdmin ? 2 : 1),
