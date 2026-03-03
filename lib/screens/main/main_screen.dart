@@ -6,6 +6,7 @@ import '../monitor/sos_monitor_screen.dart';
 import '../monitor/sos_map_screen.dart';
 import '../admin/manage_admins_screen.dart';
 import '../admin/users_list_screen.dart';
+import '../stats/sos_history_screen.dart';
 
 /// Main screen with role-based navigation
 class MainScreen extends StatefulWidget {
@@ -54,12 +55,13 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _getSelectedScreen() {
+    final isSuperAdmin = _userProfile!.isSuperAdmin;
     switch (_selectedIndex) {
       case 0:
         return SOSMonitorScreen(userProfile: _userProfile!);
       case 1:
-        // Map view only for super admins, otherwise show users list
-        if (_userProfile!.isSuperAdmin) {
+        // Super admins: H-MAP; regular admins: USERS
+        if (isSuperAdmin) {
           return SOSMapScreen(userProfile: _userProfile!);
         } else {
           return UsersListScreen(
@@ -68,15 +70,24 @@ class _MainScreenState extends State<MainScreen> {
           );
         }
       case 2:
-        return UsersListScreen(
-          userProfile: _userProfile!,
-          apiService: _apiService,
-        );
+        // Super admins: USERS; regular admins: STATS
+        if (isSuperAdmin) {
+          return UsersListScreen(
+            userProfile: _userProfile!,
+            apiService: _apiService,
+          );
+        } else {
+          return SOSHistoryScreen(userProfile: _userProfile!);
+        }
       case 3:
+        // Super admins: MANAGE ADMINS
         return ManageAdminsScreen(
           userProfile: _userProfile!,
           apiService: _apiService,
         );
+      case 4:
+        // Super admins: STATS
+        return SOSHistoryScreen(userProfile: _userProfile!);
       default:
         return SOSMonitorScreen(userProfile: _userProfile!);
     }
@@ -154,8 +165,12 @@ class _MainScreenState extends State<MainScreen> {
               if (isSuperAdmin) ...[
                 _buildNavButton('MANAGE ADMINS', 3),
                 const SizedBox(width: 16),
+                _buildNavButton('STATS', 4),
+                const SizedBox(width: 16),
+              ] else ...[
+                _buildNavButton('STATS', 2),
+                const SizedBox(width: 16),
               ],
-              const SizedBox(width: 16),
               _buildUserInfo(isSuperAdmin),
               const SizedBox(width: 16),
               _buildLogoutButton(),
