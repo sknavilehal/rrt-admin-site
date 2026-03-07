@@ -60,6 +60,7 @@ class ApiService {
     required String email,
     required String password,
     required List<String> assignedDistricts,
+    String role = 'admin',
   }) async {
     final headers = await _getHeaders();
     final response = await http.post(
@@ -69,6 +70,7 @@ class ApiService {
         'email': email,
         'password': password,
         'assignedDistricts': assignedDistricts,
+        'role': role,
       }),
     );
 

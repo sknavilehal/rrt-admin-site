@@ -62,10 +62,12 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
   Future<void> _showAddAdminDialog() async {
     final emailController = TextEditingController();
     final districtsController = TextEditingController();
+    bool isSuperAdmin = false;
 
     await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
           title: const Text('Add New Admin'),
           content: SizedBox(
             width: 500,
@@ -81,12 +83,34 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                CheckboxListTile(
+                  title: const Text('Super Admin'),
+                  subtitle: const Text(
+                    'Can view and manage all districts',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  value: isSuperAdmin,
+                  onChanged: (value) {
+                    setDialogState(() {
+                      isSuperAdmin = value ?? false;
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  activeColor: Colors.black,
+                ),
+                const SizedBox(height: 8),
                 TextField(
                   controller: districtsController,
-                  decoration: const InputDecoration(
+                  enabled: !isSuperAdmin,
+                  decoration: InputDecoration(
                     labelText: 'Assigned Districts (comma-separated)',
-                    hintText: 'e.g., bangalore, pune, mumbai',
-                    border: OutlineInputBorder(),
+                    hintText: isSuperAdmin
+                        ? 'Not applicable — super admins see all districts'
+                        : 'e.g., bangalore, pune, mumbai',
+                    border: const OutlineInputBorder(),
+                    filled: isSuperAdmin,
+                    fillColor: isSuperAdmin ? Colors.grey.shade100 : null,
                   ),
                 ),
               ],
@@ -101,17 +125,18 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
               onPressed: () async {
                 if (emailController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please enter email')),
+                    const SnackBar(content: Text('Please enter email')),
                   );
                   return;
                 }
 
-                final districts = districtsController.text
-                    .split(',')
-                    .map((d) => d.trim())
-                    .where((d) => d.isNotEmpty)
-                    .toList();
+                final districts = isSuperAdmin
+                    ? <String>[]
+                    : districtsController.text
+                        .split(',')
+                        .map((d) => d.trim())
+                        .where((d) => d.isNotEmpty)
+                        .toList();
 
                 final navigator = Navigator.of(context);
                 final messenger = ScaffoldMessenger.of(context);
@@ -123,12 +148,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                     email: emailController.text.trim(),
                     password: tempPassword,
                     assignedDistricts: districts,
+                    role: isSuperAdmin ? 'super-admin' : 'admin',
                   );
 
                   if (!mounted) return;
                   messenger.showSnackBar(
                     const SnackBar(
-                        content: Text('Admin created successfully. An email with the temporary password has been sent.')),
+                      content: Text(
+                        'Admin created successfully. An email with the temporary password has been sent.',
+                      ),
+                    ),
                   );
                   _loadAdmins();
                 } catch (e) {
@@ -147,6 +176,7 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 
@@ -350,6 +380,18 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
             ),
           ),
           Expanded(
+            flex: 2,
+            child: Text(
+              'ROLE',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
             flex: 4,
             child: Text(
               'ASSIGNED DISTRICTS',
@@ -417,41 +459,103 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.person,
+                      admin.role == 'super-admin'
+                          ? Icons.shield
+                          : Icons.person,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: admin.role == 'super-admin'
+                          ? Colors.indigo.shade400
+                          : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      admin.email,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
+                    Flexible(
+                      child: Text(
+                        admin.email,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
               Expanded(
-                flex: 4,
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: admin.assignedDistricts
-                      .map((district) => Chip(
-                            label: Text(
-                              district.toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            backgroundColor: Colors.grey.shade200,
-                            padding: EdgeInsets.zero,
-                          ))
-                      .toList(),
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: admin.role == 'super-admin'
+                          ? Colors.indigo.shade50
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      admin.role == 'super-admin'
+                          ? 'SUPER ADMIN'
+                          : 'ADMIN',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: admin.role == 'super-admin'
+                            ? Colors.indigo.shade700
+                            : Colors.grey.shade700,
+                      ),
+                    ),
+                  ),
                 ),
+              ),
+              Expanded(
+                flex: 4,
+                child: admin.role == 'super-admin'
+                    ? Align(
+                        alignment: Alignment.centerLeft,
+                        child: Chip(
+                          label: const Text(
+                            'ALL DISTRICTS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: Colors.indigo.shade50,
+                          side: BorderSide(color: Colors.indigo.shade200),
+                          padding: EdgeInsets.zero,
+                        ),
+                      )
+                    : admin.assignedDistricts.isEmpty
+                        ? Text(
+                            'None assigned',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade400,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        : Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: admin.assignedDistricts
+                                .map((district) => Chip(
+                                      label: Text(
+                                        district.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      backgroundColor: Colors.grey.shade200,
+                                      padding: EdgeInsets.zero,
+                                    ))
+                                .toList(),
+                          ),
               ),
               Expanded(
                 flex: 2,
@@ -482,10 +586,16 @@ class _ManageAdminsScreenState extends State<ManageAdminsScreen> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: IconButton(
-                    onPressed: () => _deleteAdmin(admin),
+                    onPressed: admin.role == 'super-admin'
+                        ? null
+                        : () => _deleteAdmin(admin),
                     icon: const Icon(Icons.delete_outline),
-                    color: Colors.red,
-                    tooltip: 'Delete admin',
+                    color: admin.role == 'super-admin'
+                        ? Colors.grey.shade300
+                        : Colors.red,
+                    tooltip: admin.role == 'super-admin'
+                        ? 'Super admins cannot be deleted here'
+                        : 'Delete admin',
                   ),
                 ),
               ),
